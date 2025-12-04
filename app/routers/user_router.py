@@ -111,7 +111,7 @@ def update_user(
     }
 
 
-# ---------- ELIMINAR USUARIO ----------
+# ---------- ELIMINAR USUARIO RUTA ----------
 @router.delete("/{user_id}", response_model=dict)
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
