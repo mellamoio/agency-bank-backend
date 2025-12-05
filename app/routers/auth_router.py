@@ -6,7 +6,7 @@ from app.models.User import User
 from app.schemas.auth_schema import RegisterSchema, LoginSchema, TokenResponse
 from app.auth.hash_handler import hash_password, verify_password
 from app.auth.jwt_handler import create_access_token
-from app.utils.aws_s3 import upload_file_to_s3
+from app.utils.storage import upload_file
 import os
 
 router = APIRouter(prefix="/auth", tags=["Auth"])
@@ -29,7 +29,7 @@ def register(
 
     # Manejo de foto
     if photo:
-        photo_url = upload_file_to_s3(photo)
+        photo_url = upload_file(photo)
     else:
         photo_url = PLACEHOLDER
 

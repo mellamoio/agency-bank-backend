@@ -5,7 +5,7 @@ from app.models.User import User
 from app.schemas.user_schema import UserResponse
 from app.auth.dependencies import get_current_user
 from app.auth.hash_handler import hash_password
-from app.utils.aws_s3 import upload_file_to_s3
+from app.utils.storage import upload_file
 import os
 
 router = APIRouter(prefix="/users", tags=["Users"])
@@ -50,7 +50,7 @@ def create_user(
 
     # Manejo de foto
     if photo:
-        photo_url = upload_file_to_s3(photo)
+        photo_url = upload_file(photo)
     else:
         photo_url = PLACEHOLDER
 
@@ -92,7 +92,7 @@ def update_user(
 
     # Si viene foto → subir
     if photo:
-        user.photo = upload_file_to_s3(photo)
+        user.photo = upload_file(photo)
 
     if name:
         user.name = name
