@@ -1,7 +1,7 @@
 ﻿# Archivos de configuración con secretos
 .env
 *.env
-.env.local
+.env.*
 
 # Directorio de Terraform (contiene estados sensibles y binarios)
 .terraform/
