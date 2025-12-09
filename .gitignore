@@ -2,6 +2,7 @@
 .env
 *.env
 .env.*
+.env.prod
 
 # Directorio de Terraform (contiene estados sensibles y binarios)
 .terraform/
