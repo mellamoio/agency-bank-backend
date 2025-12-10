@@ -1,192 +1,212 @@
-# Manual de Instalación - Backend Agencias Scotia
+# Manual de Instalación — agency-bank-backend
 
-Este documento explica cómo configurar y ejecutar el proyecto backend de agencias Scotia en tu máquina local.
+Documento para preparar un entorno desde cero y ejecutar el proyecto backend (agency-bank-backend) en Windows, macOS o Linux.
 
-## Requisitos Previos
-
-- Python 3.13 o superior
-- Git
-- Windows PowerShell 5.1 o superior (o cualquier terminal compatible)
-
-## Pasos de Instalación
-
-### 1. Clonar el Repositorio
-
-```powershell
-git clone https://github.com/mellamoio/agency-bank-backend.git
-cd backend-agencias-scotia
-```
-
-### 2. Crear el Ambiente Virtual
-
-```powershell
-python -m venv .venv
-```
-
-### 3. Activar el Ambiente Virtual
-
-En **Windows (PowerShell)**:
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-En **Windows (CMD)**:
-```cmd
-.venv\Scripts\activate.bat
-```
-
-En **Linux/macOS**:
-```bash
-source .venv/bin/activate
-```
-
-Después de activar, verás `(.venv)` al inicio de tu terminal.
-
-### 4. Instalar Dependencias
-
-```powershell
-pip install -r requirements.txt
-```
-
-### 5. Configurar Variables de Entorno
-
-Copia el archivo `.env` y configura las variables necesarias:
-
-```powershell
-Copy-Item .env.example .env
-```
-
-Abre el archivo `.env` y llena las variables con tus datos:
-- `DATABASE_URL`: Conexión a la base de datos
-- `AWS_ACCESS_KEY_ID`: Credenciales AWS
-- `AWS_SECRET_ACCESS_KEY`: Credenciales AWS
-- Otras configuraciones según sea necesario
-
-### 6. Configurar la Base de Datos (Opcional)
-
-Si usas Docker:
-```powershell
-docker-compose up -d
-```
-
-Para inicializar la base de datos manualmente, ejecuta el script SQL:
-```powershell
-mysql < sql/init.sql
-```
-
-## Ejecutar la Aplicación
-
-### Iniciar el Servidor
-
-```powershell
-# Con el .venv activado
-uvicorn app.main:app --reload
-```
-
-El servidor estará disponible en `http://localhost:8000`
-
-### Acceder a la Documentación API
-
-- Swagger UI: `http://localhost:8000/docs`
-- ReDoc: `http://localhost:8000/redoc`
-
-## Ejecutar Tests
-
-```powershell
-# Con el .venv activado
-pytest
-```
-
-Para ver cobertura de tests:
-```powershell
-pytest --cov=app
-```
-
-## Instalar Nuevas Dependencias
-
-### 1. Asegurate que el .venv esté activado:
-```powershell
-.\.venv\Scripts\Activate.ps1
-```
-
-### 2. Instala el paquete:
-```powershell
-pip install nombre-del-paquete
-```
-
-### 3. Actualiza requirements.txt:
-```powershell
-pip freeze > requirements.txt
-```
-
-### 4. Commit los cambios:
-```powershell
-git add requirements.txt
-git commit -m "Add new dependency: nombre-del-paquete"
-git push origin feature
-```
-
-## Desactivar el Ambiente Virtual
-
-```powershell
-deactivate
-```
-
-## Estructura del Proyecto
-
-```
-backend-agencias-scotia/
-├── app/
-│   ├── __init__.py
-│   ├── main.py                 # Punto de entrada
-│   ├── database.py             # Configuración de BD
-│   ├── auth/                   # Autenticación y JWT
-│   ├── models/                 # Modelos de BD
-│   ├── routers/                # Rutas de la API
-│   ├── schemas/                # Esquemas Pydantic
-│   ├── utils/                  # Utilidades (AWS S3, etc)
-│   └── test/                   # Tests unitarios
-├── sql/
-│   └── init.sql                # Scripts de inicialización BD
-├── docker-compose.yml          # Configuración Docker
-├── requirements.txt            # Dependencias Python
-├── pytest.ini                  # Configuración de tests
-└── README.md                   # Documentación principal
-```
-
-## Solución de Problemas
-
-### Error: "python" no es reconocido
-
-Usa la ruta completa de Python:
-```powershell
-C:\Python\python.exe -m venv .venv
-```
-
-### Error: El .venv no se activa
-
-Verifica que PowerShell permite ejecutar scripts:
-```powershell
-Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
-```
-
-### Dependencias no instaladas correctamente
-
-Limpia la caché y reinstala:
-```powershell
-pip cache purge
-pip install -r requirements.txt --force-reinstall
-```
-
-### Error de conexión a base de datos
-
-- Verifica que el servidor MySQL está ejecutándose
-- Comprueba las credenciales en el archivo `.env`
-- Verifica la URL en `DATABASE_URL`
-
-## Información de Contacto
-
-Para reportar problemas o sugerencias, contacta al equipo de desarrollo.
+Última actualización: 2025-12-09
 
 ---
-**Última actualización:** Diciembre 4, 2025
+
+## Resumen de prerequisitos
+- Git (si no está instalado, ver sección Instalación de herramientas)
+- Python 3.13+ (incluye pip)
+- Entorno de terminal:
+  - Windows: PowerShell 5.1+ o CMD
+  - Linux/macOS: bash / zsh
+- (Opcional) Docker y Docker Compose
+- (Opcional) Cliente MySQL para importación de SQL
+
+---
+
+## 1) Instalar herramientas básicas
+
+- Git
+  - Windows (winget): winget install --id Git.Git -e --source winget
+  - Ubuntu/Debian: sudo apt update && sudo apt install git -y
+  - macOS (Homebrew): brew install git
+  - Verificar: git --version
+
+- Python (3.13+)
+  - Windows: descargar desde https://www.python.org o winget install Python.Python. Asegurarse de marcar "Add to PATH".
+  - Ubuntu/Debian: sudo apt install python3 python3-venv python3-pip -y
+  - macOS (Homebrew): brew install python
+  - Verificar: python --version  (o python3 --version)
+
+- Docker (opcional)
+  - Instalar Docker Desktop (Windows/macOS) o docker & docker-compose en Linux.
+  - Verificar: docker --version && docker compose version
+
+- Cliente MySQL (opcional)
+  - Ubuntu/Debian: sudo apt install mysql-client -y
+  - Verificar: mysql --version
+
+---
+
+## 2) Clonar el repositorio
+
+Abre tu terminal preferida y ejecuta:
+
+- PowerShell / CMD / bash:
+  git clone https://github.com/mellamoio/agency-bank-backend.git
+  cd agency-bank-backend
+
+Nota: reemplaza la URL por la de tu fork/privada si aplica.
+
+---
+
+## 3) Configurar Git (si es la primera vez)
+
+git config --global user.name "Tu Nombre"
+git config --global user.email "tu@correo.com"
+
+---
+
+## 4) Crear y activar ambiente virtual (recomendado)
+
+- Windows (PowerShell):
+  python -m venv .venv
+  .\.venv\Scripts\Activate.ps1
+
+  Si falla la activación por pol. de ejecución:
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+
+- Windows (CMD):
+  python -m venv .venv
+  .venv\Scripts\activate.bat
+
+- Linux / macOS (bash):
+  python3 -m venv .venv
+  source .venv/bin/activate
+
+Verificar que el prompt muestra (.venv) y python apunta al virtualenv:
+- Windows PowerShell: Get-Command python
+- Linux/macOS: which python
+
+---
+
+## 5) Instalar dependencias Python
+
+Con el venv activado:
+pip install --upgrade pip
+pip install -r requirements.txt
+
+Si hay problemas con paquetes nativos, instala compiladores/prerequisitos del SO (ej. build-essential en Debian/Ubuntu).
+
+---
+
+## 6) Variables de entorno (.env)
+
+Copiar el ejemplo y editar:
+- PowerShell:
+  Copy-Item .env.example .env
+  notepad .env
+- Bash:
+  cp .env.example .env
+  nano .env
+
+Rellenar las variables necesarias (ej. DATABASE_URL, AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY, SECRET_KEY, etc.). Asegúrate que DATABASE_URL apunte a la base de datos correcta.
+
+---
+
+## 7) Base de datos
+
+Opción A — Usar Docker (recomendado para desarrollo rápido)
+docker compose up -d --build
+- Esto levanta servicios definidos en docker-compose.yml (DB, app, etc.). Revisa el archivo para ver nombres de servicios y puertos.
+
+Opción B — Usar DB local/manual
+- Crear base de datos y usuarios según .env.
+- Importar esquema:
+  mysql -u USUARIO -p NOMBRE_BD < sql/init.sql
+
+Asegúrate de que DATABASE_URL en .env está correctamente configurada con host, puerto, usuario y contraseña.
+
+---
+
+## 8) Ejecutar la aplicación localmente (sin Docker)
+
+Con el venv activado y .env configurado:
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+- App disponible en: http://localhost:8000
+- Swagger: http://localhost:8000/docs
+- ReDoc: http://localhost:8000/redoc
+
+Si el entrypoint difiere, revisa app/main.py y ajusta el comando.
+
+---
+
+## 9) Ejecutar con Docker
+
+Construir y levantar:
+docker compose up --build
+
+Para detener:
+docker compose down
+
+Para ver logs de un servicio:
+docker compose logs -f <service_name>
+
+---
+
+## 10) Ejecutar tests y cobertura
+
+Con el venv activado:
+pytest -q
+
+Para cobertura:
+pytest --cov=app
+
+Ajusta el directorio de cobertura si la estructura difiere.
+
+---
+
+## 11) Añadir / actualizar dependencias
+
+1. Activar venv.
+2. Instalar paquete:
+   pip install nombre-paquete
+3. Volcar dependencias:
+   pip freeze > requirements.txt
+4. Commit:
+   git add requirements.txt
+   git commit -m "chore: add dependencia nombre-paquete"
+   git push origin <tu-rama>
+
+---
+
+## 12) Comandos útiles y trucos (Windows específicos)
+
+- Si "python" no es reconocido:
+  Usa la ruta completa: C:\Python\python.exe -m venv .venv
+- Restablecer permisos de PowerShell:
+  Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
+- Forzar reinstalación de requerimientos:
+  pip cache purge
+  pip install -r requirements.txt --force-reinstall
+
+---
+
+## 13) Solución de problemas comunes
+
+- Error de conexión a BD:
+  - Verificar que el servicio MySQL/MariaDB esté corriendo.
+  - Revisar DATABASE_URL en .env.
+  - Revisar puertos expuestos en docker-compose.yml.
+
+- Problemas con dependencias nativas (compilación):
+  - Instalar compiladores / encabezados (build-essential, python-dev, libpq-dev, etc.) según DB o paquetes.
+
+- Permisos al leer .env desde Docker:
+  - Asegurar que el archivo .env esté en la ruta correcta y no ignorado por .dockerignore.
+
+---
+
+## 14) Estructura relevante del proyecto
+
+- app/             → código fuente y punto de entrada app.main:app
+- sql/init.sql     → scripts de inicialización de BD
+- docker-compose.yml, Dockerfile → contenedores
+- requirements.txt → dependencias Python
+- .env.example     → variables de entorno de ejemplo
+
+---
