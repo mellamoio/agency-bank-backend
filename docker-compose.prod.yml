@@ -1,0 +1,71 @@
+version: "3.9"
+
+services:
+  mysql:
+    image: mysql:8
+    container_name: mysql_prod
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_DATABASE: ${DB_NAME}
+      MYSQL_USER: ${DB_USER}
+      MYSQL_PASSWORD: ${DB_PASSWORD}
+    volumes:
+      - mysql_data:/var/lib/mysql
+    networks:
+      - prodnet
+
+  minio:
+    image: minio/minio
+    container_name: minio_prod
+    restart: unless-stopped
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${STORAGE_ACCESS_KEY}
+      MINIO_ROOT_PASSWORD: ${STORAGE_SECRET_KEY}
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    volumes:
+      - minio_data:/data
+    networks:
+      - prodnet
+
+fastapi:
+  build:
+    context: .
+    dockerfile: Dockerfile.prod
+  container_name: fastapi_prod
+  restart: always
+  depends_on:
+    - mysql
+    - minio
+  environment:
+    DATABASE_URL: "mysql+pymysql://${DB_USER}:${DB_PASSWORD}@mysql:3306/${DB_NAME}"
+
+    # 🔥 Storage en producción
+    STORAGE_TYPE: "s3"
+
+    AWS_ACCESS_KEY_ID: "${AWS_ACCESS_KEY_ID}"
+    AWS_SECRET_ACCESS_KEY: "${AWS_SECRET_ACCESS_KEY}"
+    AWS_REGION: "${AWS_REGION}"
+    AWS_S3_BUCKET: "${AWS_S3_BUCKET}"
+
+    # Carpeta interna dónde subirás archivos
+    AWS_S3_PROFILE_FOLDER: "profiles"
+
+    ENVIRONMENT: "production"
+
+  ports:
+    - "8000:8000"
+  networks:
+    - prodnet
+
+volumes:
+  mysql_data:
+  minio_data:
+
+
+networks:
+  prodnet:
+    driver: bridge
