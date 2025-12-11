@@ -5,32 +5,30 @@ from botocore.exceptions import NoCredentialsError
 from minio import Minio
 import boto3
 
-# ==============================
+# =======================================
 # ⚙ Configuración general
-# ==============================
-STORAGE_TYPE = os.getenv("STORAGE_TYPE", "minio").lower()  # "minio" por defecto
+# =======================================
+STORAGE_TYPE = os.getenv("STORAGE_TYPE", "minio").lower()
 
 
-
-# ==============================
+# =======================================
 # 🌩 AWS S3 PRODUCCIÓN
-# ==============================
-AWS_BUCKET = os.getenv("AWS_S3_BUCKET")
+# =======================================
+AWS_BUCKET = os.getenv("AWS_S3_BUCKET_NAME")   # CORREGIDO
 AWS_REGION = os.getenv("AWS_REGION")
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
 
 
-# ==============================
+# =======================================
 # 📦 Minio LOCAL
-# ==============================
-MINIO_ENDPOINT = os.getenv("STORAGE_ENDPOINT", "minio:9000")   # coincide con tu compose
+# =======================================
+MINIO_ENDPOINT = os.getenv("STORAGE_ENDPOINT", "http://minio:9000")
 MINIO_BUCKET = os.getenv("MINIO_BUCKET_NAME")
 MINIO_ACCESS = os.getenv("STORAGE_ACCESS_KEY")
 MINIO_SECRET = os.getenv("STORAGE_SECRET_KEY")
 
-# Base URL correcta para servir archivos MinIO
-LOCAL_BASE_URL = os.getenv("LOCAL_S3_BASE_URL", f"http://{MINIO_ENDPOINT}")
+LOCAL_BASE_URL = os.getenv("LOCAL_S3_BASE_URL", MINIO_ENDPOINT)
 
 
 # =================================================
@@ -49,10 +47,16 @@ def get_client():
             region_name=AWS_REGION
         ), "s3"
 
-    # ---------------- Minio LOCAL ----------------
+    # ---------------- MinIO LOCAL ----------------
     print("💾 Usando MinIO local")
+
     endpoint = MINIO_ENDPOINT.replace("http://", "").replace("https://", "")
-    return Minio(endpoint, MINIO_ACCESS, MINIO_SECRET, secure=False), "minio"
+    return Minio(
+        endpoint,
+        MINIO_ACCESS,
+        MINIO_SECRET,
+        secure=MINIO_ENDPOINT.startswith("https")
+    ), "minio"
 
 
 
@@ -69,7 +73,7 @@ def upload_file(file, folder="profiles"):
     file_key = f"{folder}/{uuid.uuid4()}.{file_ext}"
 
 
-    # ---------------- AWS S3 ----------------
+    # ============ AWS S3 =============
     if mode == "s3":
         try:
             client.upload_fileobj(
@@ -86,11 +90,16 @@ def upload_file(file, folder="profiles"):
             return None
 
 
-    # ---------------- MinIO 🏠 LOCAL ----------------
+    # ============ MinIO LOCAL ============
+    # Leer archivo completo para put_object()
+    content = file.file.read()
+
+    # IMPORTANTE: permitir futuras lecturas
+    file.file.seek(0)
+
+    # Crear bucket si no existe
     if not client.bucket_exists(MINIO_BUCKET):
         client.make_bucket(MINIO_BUCKET)
-
-    content = file.file.read()  # necesario para cargar archivo completo
 
     client.put_object(
         MINIO_BUCKET,
@@ -100,5 +109,4 @@ def upload_file(file, folder="profiles"):
         content_type=file.content_type
     )
 
-    # URL accesible correctamente estructurada
     return f"{LOCAL_BASE_URL}/{file_key}"

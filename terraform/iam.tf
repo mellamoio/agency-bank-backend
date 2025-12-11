@@ -81,3 +81,34 @@ resource "aws_iam_role_policy" "ecs_task_policy" {
     }]
   })
 }
+
+# =======================================================
+# PERMISOS PARA QUE ECS LEA SECRET MANAGER (MUY IMPORTANTE)
+# =======================================================
+
+# Policy para permitir obtener el valor del secreto RDS
+resource "aws_iam_policy" "ecs_secrets_access" {
+  name        = "${var.project_name}-${var.environment}-ecs-secrets-access"
+  description = "Allow ECS tasks to read Secrets Manager secrets"
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        # Usa wildcard para permitir el ID dinámico que AWS agrega al final
+        Resource = "arn:aws:secretsmanager:${var.aws_region}:${var.aws_account_id}:secret:agencias-scotia-${var.environment}-db-password*"
+      }
+    ]
+  })
+}
+
+# Adjuntar la policy a la Execution Role (la que usa ECS para extraer secretos)
+resource "aws_iam_role_policy_attachment" "ecs_secrets_access_attach" {
+  role       = aws_iam_role.ecs_task_execution_role.name
+  policy_arn = aws_iam_policy.ecs_secrets_access.arn
+}

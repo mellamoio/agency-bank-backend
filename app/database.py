@@ -34,3 +34,48 @@ from app.models.State import State
 from app.models.Agency import Agency
 
 print(f"📌 Conectado a Base de Datos en: {DATABASE_URL}")
+
+# ==================== Funciones de inicialización ====================
+
+def init_db():
+    """Crea todas las tablas en la base de datos"""
+    try:
+        Base.metadata.create_all(bind=engine)
+        print("✅ Tablas creadas exitosamente")
+    except Exception as e:
+        print(f"❌ Error al crear tablas: {e}")
+
+def seed_states():
+    """Inserta los estados iniciales (Activo/Inactivo)"""
+    db = SessionLocal()
+    try:
+        # Verifica si ya existen estados
+        existing_count = db.query(State).count()
+        if existing_count > 0:
+            print(f"⚠️  Ya existen {existing_count} estados en la BD, omitiendo seed")
+            return
+        
+        # Inserta los 2 estados
+        states = [
+            State(id=1, name="Activo"),
+            State(id=2, name="Inactivo")
+        ]
+        
+        db.add_all(states)
+        db.commit()
+        print(f"✅ {len(states)} estados insertados correctamente")
+        
+    except Exception as e:
+        print(f"❌ Error al insertar estados: {e}")
+        db.rollback()
+    finally:
+        db.close()
+
+def seed_all():
+    """Ejecuta todos los seeds en orden"""
+    print("🌱 Iniciando seed de datos...")
+    seed_states()
+    # Aquí puedes agregar más seeds si necesitas
+    # seed_agencies()
+    # seed_users()
+    print("✅ Seed completado")
