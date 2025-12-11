@@ -1,0 +1,191 @@
+name: Terraform Plan & Validate
+
+on:
+  push:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/terraform-plan.yml'
+  pull_request:
+    branches:
+      - main
+      - dev
+    paths:
+      - 'terraform/**'
+  workflow_dispatch:
+
+env:
+  AWS_REGION: us-east-1
+  TERRAFORM_VERSION: '1.5.0'
+
+permissions:
+  id-token: write
+  contents: read
+  pull-requests: write
+
+jobs:
+  terraform-validate:
+    name: Terraform Validate & Format
+    runs-on: ubuntu-latest
+    
+    defaults:
+      run:
+        working-directory: ./terraform
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+    
+    # 🔥 AGREGADO: Configure AWS credentials para poder hacer init
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    # 🔥 AGREGADO: Terraform Init antes de validate
+    - name: Terraform Init
+      run: terraform init -backend=false
+    
+    - name: Terraform Format Check
+      run: terraform fmt -check -recursive
+      continue-on-error: true
+    
+    - name: Terraform Validate
+      run: terraform validate
+
+  terraform-plan:
+    name: Terraform Plan
+    runs-on: ubuntu-latest
+    needs: terraform-validate
+    
+    defaults:
+      run:
+        working-directory: ./terraform
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+    
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Terraform Init
+      run: terraform init -upgrade
+
+    - name: Terraform Plan (Dev)
+      if: github.ref == 'refs/heads/dev'
+      run: |
+        terraform plan -var-file="terraform.dev.tfvars" -out=tfplan.dev -no-color
+        terraform show -no-color tfplan.dev > plan.txt
+
+    - name: Terraform Plan (Prod)
+      if: github.ref == 'refs/heads/main'
+      run: |
+        terraform plan -var-file="terraform.prod.tfvars" -out=tfplan.prod -no-color
+        terraform show -no-color tfplan.prod > plan.txt
+
+    - name: Save Terraform Plan
+      uses: actions/upload-artifact@v3
+      with:
+        name: terraform-plan
+        path: |
+          terraform/tfplan.*
+          terraform/plan.txt
+        retention-days: 7
+
+    - name: Comment PR with Plan
+      if: github.event_name == 'pull_request'
+      uses: actions/github-script@v7
+      with:
+        script: |
+          const fs = require('fs');
+          let plan = '';
+          try {
+            plan = fs.readFileSync('terraform/plan.txt','utf8');
+          } catch (e) {
+            plan = 'Could not read plan file.';
+          }
+
+          github.rest.issues.createComment({
+            issue_number: context.issue.number,
+            owner: context.repo.owner,
+            repo: context.repo.repo,
+            body: '## 🏗️ Terraform Plan\n\n```\n' + plan + '\n```'
+          });
+      continue-on-error: true
+
+  terraform-apply:
+    name: Terraform Apply (Manual)
+    runs-on: ubuntu-latest
+    needs: terraform-plan
+    if: (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/dev') && github.event_name == 'push'
+    
+    environment:
+      name: ${{ github.ref == 'refs/heads/main' && 'production' || 'development' }}
+    
+    defaults:
+      run:
+        working-directory: ./terraform
+    
+    steps:
+    - name: Checkout código
+      uses: actions/checkout@v4
+    
+    - name: Setup Terraform
+      uses: hashicorp/setup-terraform@v2
+      with:
+        terraform_version: ${{ env.TERRAFORM_VERSION }}
+    
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    - name: Download Terraform Plan
+      uses: actions/download-artifact@v3
+      with:
+        name: terraform-plan
+        path: terraform/
+    
+    - name: Terraform Init
+      run: terraform init -upgrade
+    
+    - name: Terraform Apply (Dev)
+      if: github.ref == 'refs/heads/dev'
+      run: terraform apply -auto-approve tfplan.dev
+    
+    - name: Terraform Apply (Prod)
+      if: github.ref == 'refs/heads/main'
+      run: terraform apply -auto-approve tfplan.prod
+    
+    - name: Terraform Outputs
+      run: terraform output -json > outputs.json
+    
+    - name: Save Outputs
+      uses: actions/upload-artifact@v3
+      with:
+        name: terraform-outputs
+        path: terraform/outputs.json
+        retention-days: 30
+    
+    - name: Deploy Success
+      run: |
+        echo "✅ Infraestructura desplegada exitosamente"
+        echo "📊 Outputs guardados en artifacts"
