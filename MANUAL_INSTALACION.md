@@ -4,6 +4,52 @@ Guía completa paso a paso para instalar, configurar y desplegar el proyecto des
 
 ---
 
+## Quick Start (Windows - PowerShell)
+
+Si quieres levantar el proyecto rápidamente en Windows usando los comandos simplificados, sigue estos pasos.
+
+1) Clonar el repositorio y entrar en la carpeta:
+
+```powershell
+git clone https://github.com/mellamoio/agency-bank-backend.git
+cd backend-agencias-scotia
+```
+
+2) Crear y activar entorno virtual:
+
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+```
+
+3) Instalar dependencias Python:
+
+```powershell
+python -m pip install --upgrade pip
+pip install -r requirements.txt
+```
+
+4a) Ejecutar app localmente (sin Docker):
+
+```powershell
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+```
+
+4b) O iniciar con Docker Compose (MySQL + MinIO incluidos):
+
+```powershell
+docker-compose up --build -d
+```
+
+5) Acceder a la API:
+
+```text
+http://localhost:8000  (Swagger: /docs)
+```
+
+Si necesitas pasos más detallados, continúa leyendo las secciones siguientes.
+
+
 ## PARTE 1: REQUISITOS DEL SISTEMA
 
 ### 1.1 Verificar Python 3.11
@@ -369,41 +415,6 @@ Esto genera un reporte en `htmlcov/index.html`.
 pylint app --disable=C0111,C0103 --fail-under=7.0
 ```
 
----
-
-## PARTE 10: BUILD Y PUSH A ECR (AWS)
-
-### 10.1 Crear repositorio ECR (si no existe)
-
-```powershell
-# Requiere AWS CLI configurado
-# Obtener URL del ECR
-$ECR_URL = terraform output -raw ecr_repository_url
-Write-Host "ECR URL: $ECR_URL"
-
-# Generar un token temporal
-aws ecr get-login-password --region us-east-1
-
-# Guardar el token en una variable
-$TOKEN = aws ecr get-login-password --region us-east-1
-
-# Realizar un login manual usando el token
-docker login --username AWS --password $TOKEN $ECR_URL
-
-Debes ver: `Login Succeeded`
-
-# Navegar a la carpeta de la app
-cd ..\app
-
-### 10.3 Construir imagen
-docker build -t ${ECR_URL}:latest -f Dockerfile.prod .
-
-# Verificar imagen
-docker images
-
-# Subir imagen a ECR
-docker push ${ECR_URL}:latest
----
 
 ## PARTE 11: DESPLIEGUE CON TERRAFORM (AWS)
 
@@ -412,6 +423,7 @@ docker push ${ECR_URL}:latest
 ```powershell
 cd terraform
 ```
+
 
 ### 11.2 Inicializar Terraform
 
@@ -456,6 +468,41 @@ Verás información como:
 - Cluster name
 - Service name
 - RDS endpoint
+
+## PARTE 10: BUILD Y PUSH A ECR (AWS)
+
+### 10.1 Crear repositorio ECR (si no existe)
+
+```powershell```
+
+# Requiere AWS CLI configurado
+# Obtener URL del ECR
+$ECR_URL = terraform output -raw ecr_repository_url
+Write-Host "ECR URL: $ECR_URL"
+
+# Generar un token temporal
+aws ecr get-login-password --region us-east-1
+
+# Guardar el token en una variable
+$TOKEN = aws ecr get-login-password --region us-east-1
+
+# Realizar un login manual usando el token
+docker login --username AWS --password $TOKEN $ECR_URL
+
+Debes ver: `Login Succeeded`
+
+# Navegar a la carpeta de la app
+cd ..\app
+
+### Construir imagen
+docker build -t ${ECR_URL}:latest -f Dockerfile.prod .
+
+# Verificar imagen
+docker images
+
+# Subir imagen a ECR
+docker push ${ECR_URL}:latest
+
 
 
 ### 11.6 Destruir infraestructura (si necesitas limpiar)

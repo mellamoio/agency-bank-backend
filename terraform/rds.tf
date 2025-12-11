@@ -66,18 +66,20 @@ resource "aws_db_parameter_group" "main" {
   }
 }
 
-# RDS Instance Free Tier
+# RDS Instance - MySQL 8.0
+# En DEV: free tier (t3.micro)
+# En PROD: pequeña pero con backups y multi-AZ
 resource "aws_db_instance" "main" {
   identifier                 = "${var.project_name}-${var.environment}-db"
   engine                     = "mysql"
   engine_version             = "8.0"
   auto_minor_version_upgrade = true
 
-  # FREE TIER
-  instance_class    = "db.t3.micro"
-  allocated_storage = 20
-  storage_type      = "gp2"
-  storage_encrypted = true
+  # Usa variables: terraform.dev.tfvars vs terraform.prod.tfvars
+  instance_class    = var.db_instance_class
+  allocated_storage = var.db_allocated_storage
+  storage_type      = "gp3"                    # GP3 es más moderno que GP2
+  storage_encrypted = true                     # Encriptación en reposo
 
   db_name  = var.db_name
   username = var.db_username
@@ -86,17 +88,19 @@ resource "aws_db_instance" "main" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  # ✅ Ya está en true - necesario para acceso desde Workbench
+  # ✅ Necesario para acceso desde Workbench/MySQL Workbench
   publicly_accessible = true
   port                = 3306
 
-  backup_retention_period = 1
-  multi_az                = false
-  monitoring_interval     = 0
-  enabled_cloudwatch_logs_exports = []
+  # OPTIMIZADO PARA ESTUDIO: Backup y monitoreo DESHABILITADOS
+  # En producción real, cambiar a: backup_retention_period = 7, multi_az = true
+  backup_retention_period = 0  # Sin backups automáticos (ahorro de costo)
+  multi_az = false             # Sin Multi-AZ
+  monitoring_interval = 0      # Sin Enhanced monitoring
+  enabled_cloudwatch_logs_exports = []  # Sin CloudWatch logs
 
-  skip_final_snapshot = true
-  deletion_protection = false
+  skip_final_snapshot       = true
+  deletion_protection       = false  # Permitir destroy para tests
 
   tags = {
     Name = "${var.project_name}-${var.environment}-mysql-db"

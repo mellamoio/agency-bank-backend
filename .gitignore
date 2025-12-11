@@ -7,6 +7,9 @@
 # Directorio de Terraform (contiene estados sensibles y binarios)
 .terraform/
 
+terraform.dev.tfvars
+terraform.prod.tfvars
+
 # Otros archivos comunes de la CLI de Terraform
 *.tfstate
 *.tfstate.backup
