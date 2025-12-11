@@ -14,6 +14,8 @@ db_instance_class    = "db.t3.small"
 db_allocated_storage = 100
 db_name              = "agencias_db"
 db_username          = "admin"
-db_password          = "ProdSecurePassword123!"  # ⚠️ CAMBIAR - Usar AWS Secrets Manager
+db_password          = "Ingenier0io99" # ⚠️ CAMBIAR - Usar AWS Secrets Manager
+aws_account_id       = "950071105194"
+my_ip                = "138.84.39.13/32"
 
 # Nota: aws_region y project_name mantienen sus defaults

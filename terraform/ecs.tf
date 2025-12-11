@@ -46,18 +46,28 @@ resource "aws_ecs_task_definition" "app" {
       protocol      = "tcp"
     }]
 
+    # ======================
+    # 👇 VARIABLES PARA RDS
+    # ======================
     environment = [
+      { name = "ENVIRONMENT", value = var.environment },
+      { name = "PORT", value = "8000" },
+      { name = "HOST", value = "0.0.0.0" },
+
+      # 👇 Variables para la DB
+      { name = "DB_HOST", value = aws_db_instance.main.address },
+      { name = "DB_PORT", value = "3306" },
+      { name = "DB_NAME", value = var.db_name },
+      { name = "DB_USER", value = var.db_username }
+    ]
+
+    # ============================================
+    # 👇 Secret de password desde Secrets Manager
+    # ============================================
+    secrets = [
       {
-        name  = "ENVIRONMENT"
-        value = var.environment
-      },
-      {
-        name  = "PORT"
-        value = "8000"
-      },
-      {
-        name  = "HOST"
-        value = "0.0.0.0"
+        name      = "DB_PASSWORD"
+        valueFrom = aws_secretsmanager_secret.db_password.arn
       }
     ]
 
@@ -78,6 +88,7 @@ resource "aws_ecs_task_definition" "app" {
       startPeriod = 60
     }
   }])
+
 
   tags = {
     Name = "${var.project_name}-${var.environment}-task"

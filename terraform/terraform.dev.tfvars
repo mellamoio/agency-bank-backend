@@ -9,4 +9,5 @@ db_instance_class    = "db.t3.micro"
 db_allocated_storage = 20
 db_name              = "agencias_db"
 db_username          = "admin"
-db_password          = "Dev123456!"  # ⚠️ NO COMMITEAR - Usar valores locales
+db_password          = "Ingenier@io99" # ⚠️ NO COMMITEAR - Usar valores locales
+my_ip                = "138.84.39.13/32"

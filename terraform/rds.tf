@@ -3,24 +3,35 @@
 # Subnet Group para RDS (en subnets privadas)
 resource "aws_db_subnet_group" "main" {
   name       = "${var.project_name}-${var.environment}-db-subnet-group"
-  subnet_ids = aws_subnet.private[*].id
+  subnet_ids = aws_subnet.public[*].id
 
   tags = {
     Name = "${var.project_name}-${var.environment}-db-subnet-group"
   }
 }
 
-# Security Group para RDS - permite acceso solo desde ECS
+# Security Group para RDS - permite acceso desde ECS Y desde tu IP
 resource "aws_security_group" "rds" {
   name        = "${var.project_name}-${var.environment}-rds-sg"
-  description = "Permitir acceso MySQL solo desde ECS Tasks"
+  description = "Permitir acceso MySQL desde ECS Tasks y Workbench"
   vpc_id      = aws_vpc.main.id
 
+  # Acceso desde ECS Tasks
   ingress {
+    description     = "MySQL from ECS Tasks"
     from_port       = 3306
     to_port         = 3306
     protocol        = "tcp"
     security_groups = [aws_security_group.ecs_tasks.id]
+  }
+
+  # 🔥 NUEVA REGLA: Acceso desde tu computadora para Workbench
+  ingress {
+    description = "MySQL from my computer (Workbench)"
+    from_port   = 3306
+    to_port     = 3306
+    protocol    = "tcp"
+    cidr_blocks = [var.my_ip] # Usaremos una variable para tu IP
   }
 
   egress {
@@ -57,15 +68,15 @@ resource "aws_db_parameter_group" "main" {
 
 # RDS Instance Free Tier
 resource "aws_db_instance" "main" {
-  identifier     = "${var.project_name}-${var.environment}-db"
-  engine         = "mysql"
-  engine_version = "8.0"
+  identifier                 = "${var.project_name}-${var.environment}-db"
+  engine                     = "mysql"
+  engine_version             = "8.0"
   auto_minor_version_upgrade = true
 
   # FREE TIER
-  instance_class    = "db.t3.micro"   # asegúrate var.db_instance_class = "db.t3.micro"
-  allocated_storage = 20              # var.db_allocated_storage <= 20
-  storage_type      = "gp2"           # gp3 permite IOPS y podría cobrar - mejor gp2 GRATIS
+  instance_class    = "db.t3.micro"
+  allocated_storage = 20
+  storage_type      = "gp2"
   storage_encrypted = true
 
   db_name  = var.db_name
@@ -75,23 +86,17 @@ resource "aws_db_instance" "main" {
   db_subnet_group_name   = aws_db_subnet_group.main.name
   vpc_security_group_ids = [aws_security_group.rds.id]
 
-  publicly_accessible = false
+  # ✅ Ya está en true - necesario para acceso desde Workbench
+  publicly_accessible = true
   port                = 3306
 
-  # Free tier restriction (máximo 1 día backup)
   backup_retention_period = 1
-
-  # sin multi-AZ para evitar costos
-  multi_az = false
-
-  # sin enhanced monitoring (coste)
-  monitoring_interval = 0
-
-  # Cloudwatch log exports removidos para evitar $$
+  multi_az                = false
+  monitoring_interval     = 0
   enabled_cloudwatch_logs_exports = []
 
-  skip_final_snapshot       = true
-  deletion_protection       = false
+  skip_final_snapshot = true
+  deletion_protection = false
 
   tags = {
     Name = "${var.project_name}-${var.environment}-mysql-db"
@@ -104,7 +109,7 @@ resource "aws_db_instance" "main" {
   ]
 }
 
-# Alarmas opcionales (sin costo porque no envían notificaciones)
+# Alarmas opcionales
 resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   alarm_name          = "${var.project_name}-${var.environment}-rds-cpu-high"
   comparison_operator = "GreaterThanThreshold"
@@ -114,7 +119,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_cpu" {
   period              = "300"
   statistic           = "Average"
   threshold           = "80"
-  dimensions = { DBInstanceIdentifier = aws_db_instance.main.id }
+  dimensions          = { DBInstanceIdentifier = aws_db_instance.main.id }
 }
 
 resource "aws_cloudwatch_metric_alarm" "rds_storage" {
@@ -126,7 +131,7 @@ resource "aws_cloudwatch_metric_alarm" "rds_storage" {
   period              = "300"
   statistic           = "Average"
   threshold           = "2147483648"
-  dimensions = { DBInstanceIdentifier = aws_db_instance.main.id }
+  dimensions          = { DBInstanceIdentifier = aws_db_instance.main.id }
 }
 
 resource "aws_cloudwatch_metric_alarm" "rds_connections" {
@@ -138,5 +143,5 @@ resource "aws_cloudwatch_metric_alarm" "rds_connections" {
   period              = "300"
   statistic           = "Average"
   threshold           = "80"
-  dimensions = { DBInstanceIdentifier = aws_db_instance.main.id }
+  dimensions          = { DBInstanceIdentifier = aws_db_instance.main.id }
 }

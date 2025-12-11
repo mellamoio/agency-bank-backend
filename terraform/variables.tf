@@ -13,7 +13,7 @@ variable "project_name" {
 variable "environment" {
   description = "Ambiente (dev, staging, prod)"
   type        = string
-  default     = "dev"
+  default     = "prod"
 }
 
 variable "app_count" {
@@ -69,4 +69,15 @@ variable "db_password" {
     condition     = length(var.db_password) >= 8
     error_message = "La contraseña debe tener al menos 8 caracteres"
   }
+}
+
+variable "aws_account_id" {
+  description = "AWS Account ID"
+  type        = string
+}
+
+variable "my_ip" {
+  description = "Tu IP pública para acceso desde Workbench (formato: X.X.X.X/32)"
+  type        = string
+  sensitive   = true
 }
