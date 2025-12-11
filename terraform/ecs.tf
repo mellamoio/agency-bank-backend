@@ -1,8 +1,12 @@
 # ECS Cluster - FastAPI Backend
-# Ejecuta contenedores Docker de FastAPI en Fargate
+# Ejecuta contenedores Docker de FastAPI en Fargate (serverless)
+# En DEV: Container Insights deshabilitado para ahorrar costos
+# En PROD: Habilitar para mejor monitoreo
 resource "aws_ecs_cluster" "main" {
   name = "${var.project_name}-${var.environment}-cluster"
 
+  # Container Insights DESHABILITADO para ahorrar costos
+  # En producción real, cambiar a "enabled" para mejor monitoreo
   setting {
     name  = "containerInsights"
     value = "disabled"
@@ -14,9 +18,10 @@ resource "aws_ecs_cluster" "main" {
 }
 
 # CloudWatch Log Group para ECS
+# Retención MÍNIMA (1 día) para ahorrar costos de almacenamiento
 resource "aws_cloudwatch_log_group" "ecs" {
   name              = "/ecs/${var.project_name}-${var.environment}"
-  retention_in_days = 7
+  retention_in_days = 1
 
   tags = {
     Name = "${var.project_name}-${var.environment}-ecs-logs"
