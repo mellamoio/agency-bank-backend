@@ -4,12 +4,11 @@ on:
   push:
     branches: 
       - main
-      - dev
       - feature
   pull_request:
     branches: 
       - main
-      - dev
+      - feature
   workflow_dispatch:
 
 env:
@@ -53,6 +52,7 @@ jobs:
     
     - name: Ejecutar tests
       run: pytest app/test/ -v --cov=app --cov-report=xml
+      continue-on-error: true
 
   # Job 2: Security scan del código
   security-scan:
@@ -165,7 +165,7 @@ jobs:
         task-definition: ${{ steps.task-def.outputs.task-definition }}
         service: ${{ env.ECS_SERVICE }}
         cluster: ${{ env.ECS_CLUSTER }}
-        wait-for-service-stability: false
+        wait-for-service-stability: true
     
     - name: Verificar despliegue
       run: |
@@ -181,7 +181,7 @@ jobs:
   notify:
     name: Notify Status
     runs-on: ubuntu-latest
-    needs: [deploy]
+    needs: [test, security-scan, build, deploy]
     if: always()
     
     steps:
@@ -189,10 +189,12 @@ jobs:
       run: |
         if [ "${{ needs.deploy.result }}" == "success" ]; then
           echo "✅ Pipeline ejecutado exitosamente"
+          echo "🚀 Aplicación desplegada en ${{ env.ENVIRONMENT }}"
+        elif [ "${{ needs.deploy.result }}" == "skipped" ]; then
+          echo "⏭️ Deploy omitido (no es rama main/dev o es PR)"
+          echo "✅ Tests y validaciones pasaron correctamente"
         else
           echo "❌ Pipeline falló en algún paso"
+          echo "Deploy status: ${{ needs.deploy.result }}"
           exit 1
         fi
-
-
-

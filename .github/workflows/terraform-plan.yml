@@ -43,6 +43,17 @@ jobs:
       with:
         terraform_version: ${{ env.TERRAFORM_VERSION }}
     
+    # 🔥 AGREGADO: Configure AWS credentials para poder hacer init
+    - name: Configure AWS credentials (OIDC)
+      uses: aws-actions/configure-aws-credentials@v4
+      with:
+        role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+        aws-region: ${{ env.AWS_REGION }}
+    
+    # 🔥 AGREGADO: Terraform Init antes de validate
+    - name: Terraform Init
+      run: terraform init -backend=false
+    
     - name: Terraform Format Check
       run: terraform fmt -check -recursive
       continue-on-error: true
