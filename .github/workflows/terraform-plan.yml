@@ -1,3 +1,11 @@
+name: Debug GitHub Context
+run: |
+  echo "Repository: ${{ github.repository }}"
+  echo "Ref: ${{ github.ref }}"
+  echo "Event: ${{ github.event_name }}"
+  echo "Actor: ${{ github.actor }}"
+    
+
 name: Terraform Plan & Validate
 
 on:
