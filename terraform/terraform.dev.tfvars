@@ -16,17 +16,19 @@ environment  = "dev"
 app_count = 1
 
 # CPU y Memoria para FastAPI en DEV (recursos mínimos)
-fargate_cpu    = "256"   # 0.25 vCPU
-fargate_memory = "512"   # 512MB RAM
+fargate_cpu    = "256" # 0.25 vCPU
+fargate_memory = "512" # 512MB RAM
 
 # ===== RDS CONFIGURACIÓN DESARROLLO =====
 # Free Tier
-db_instance_class   = "db.t3.micro"     # Free Tier
-db_allocated_storage = 20               # 20 GB
+db_instance_class    = "db.t3.micro" # Free Tier
+db_allocated_storage = 20            # 20 GB
 
 # Database
 db_name     = "agencias_db"
 db_username = "admin"
+my_ip       = "138.84.39.13/32"
+aws_account_id = "950071105194"
 
 # ⚠️ IMPORTANTE: 
 # No incluir db_password aquí - se inyecta vía variable de ambiente TF_VAR_db_password

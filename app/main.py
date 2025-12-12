@@ -18,3 +18,7 @@ app.include_router(agency_router.router)
 @app.get("/")
 def root():
     return {"message": "API funcionando correctamente"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}

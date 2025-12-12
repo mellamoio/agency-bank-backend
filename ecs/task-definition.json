@@ -1,0 +1,31 @@
+{
+  "family": "agencias-scotia-dev-task",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::950071105194:role/agencias-scotia-dev-ecs-task-execution-role",
+  "taskRoleArn": "arn:aws:iam::950071105194:role/agencias-scotia-dev-ecs-task-role",
+  "containerDefinitions": [
+    {
+      "name": "fastapi-app",
+      "image": "REPLACED_BY_GITHUB_ACTIONS",
+      "essential": true,
+      "portMappings": [
+        {
+          "containerPort": 8000,
+          "hostPort": 8000,
+          "protocol": "tcp"
+        }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/agencias-scotia-dev",
+          "awslogs-region": "us-east-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      }
+    }
+  ]
+}

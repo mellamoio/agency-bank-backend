@@ -27,6 +27,7 @@ db_allocated_storage = 20               # Mínimo para Free Tier
 # Database
 db_name     = "agencias_db"
 db_username = "admin"
+aws_account_id = "950071105194"
 
 # ⚠️ IMPORTANTE: 
 # No incluir db_password aquí - se inyecta vía variable de ambiente TF_VAR_db_password
@@ -34,5 +35,5 @@ db_username = "admin"
 
 # Para aplicar localmente, descomentar y establecer valores:
 # db_password    = "TU_PASSWORD_AQUI"  # Mínimo 8 caracteres
-# aws_account_id = "123456789012"      # Tu AWS Account ID
+# aws_account_id = "TU_ACCOUNT_ID_REAL"      # Tu AWS Account ID
 # my_ip          = "203.0.113.0/32"    # Tu IP pública/32 para Workbench
