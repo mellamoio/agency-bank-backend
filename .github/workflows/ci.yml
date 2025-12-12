@@ -2,20 +2,19 @@ name: CI - Build & Push to ECR
 
 on:
   push:
-    branches:
-      - '**'
-      - '!main'
+    branches-ignore:
+      - main   # evita que el CI se ejecute en main (solo CD)
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
 
     permissions:
-      id-token: write
+      id-token: write   # necesario para OIDC
       contents: read
 
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
 
       - name: Configure AWS Credentials (OIDC)
@@ -27,11 +26,14 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v2
 
-      - name: Build image
-        run: docker build -t app:latest .
+      - name: Build Docker image
+        run: |
+          docker build -t fastapi-app:latest .
 
-      - name: Tag image
-        run: docker tag app:latest ${{ vars.ECR_REPO }}:latest
+      - name: Tag Docker image for ECR
+        run: |
+          docker tag fastapi-app:latest ${{ vars.ECR_REPO }}:latest
 
-      - name: Push image
-        run: docker push ${{ vars.ECR_REPO }}:latest
+      - name: Push Docker image to ECR
+        run: |
+          docker push ${{ vars.ECR_REPO }}:latest
