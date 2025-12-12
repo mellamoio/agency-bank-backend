@@ -8,7 +8,7 @@ Breve backend para la gestión de agencias (proyecto de práctica).
 - `app/` - Código fuente (routers, modelos, esquemas, utilidades)
 - `sql/` - Scripts de inicialización de base de datos
 - `requirements.txt` - Dependencias del proyecto
-- `INSTALL.md` - Manual de instalación detallado
+- `MANUAL_INSTALACION.md` - Manual de instalación detallado
 
 ## Requisitos
 - Python 3.13 o superior
@@ -213,3 +213,4 @@ Si necesitas ayuda, abre un issue en el repositorio o contacta al mantenedor.
 
 ---
 Última actualización: Diciembre 11, 2025
+
