@@ -1,5 +1,5 @@
 resource "aws_secretsmanager_secret" "db_password" {
-  name = "${var.project_name}-${var.environment}-db-password-v3"
+  name = "${var.project_name}-${var.environment}-db-password-v7"
 }
 
 resource "aws_secretsmanager_secret_version" "db_password_value" {

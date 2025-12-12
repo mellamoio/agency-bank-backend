@@ -423,6 +423,11 @@ pylint app --disable=C0111,C0103 --fail-under=7.0
 ```powershell
 cd terraform
 ```
+**Primero define tus variables**
+$env:TF_VAR_db_password="TU_PASSWORD"
+$env:TF_VAR_aws_account_id="TU_ID_ACCOUNT"
+$env:TF_VAR_my_ip="TU_IP_PUBLICA"
+
 
 
 ### 11.2 Inicializar Terraform
@@ -448,7 +453,8 @@ terraform plan
 ### 11.4 Aplicar cambios (DEV)
 
 ```powershell
-terraform apply
+terraform apply -var-file=terraform.dev.tfvars
+terraform apply -var-file=terraform.prod.tfvars
 ```
 
 Terraform preguntará: `Do you want to perform these actions?`
@@ -549,6 +555,20 @@ arn:aws:iam::123456789:role/github-actions-role
 
 4. Click en **Add secret**
 
+5. Añadir:
+   - **Name:** `TF_VAR_DB_PASSWORD`
+   - **Value:** (CONTRASEÑA_DEFINIDA)
+
+6. Click en **Add secret**
+
+7. Ir a **Settings** → **Secrets and variables** → **Variables**
+8. Click en **New repository secret** y agregar sus valores respectivos
+   -ECR_REPO
+   -ECS_CLUSTER
+   -ECS_SERVICE
+
+
+
 ### 12.3 Verificar configuración OIDC en AWS
 
 ```powershell
@@ -573,7 +593,7 @@ git config --global user.email "tu@email.com"
 ### 13.2 Crear rama para tus cambios
 
 ```powershell
-git checkout -b feature/tu-cambio
+git checkout -b feature
 ```
 
 ### 13.3 Hacer cambios
@@ -647,6 +667,8 @@ Si todo está verde (✅), puedes hacer merge.
 ---
 
 ## PARTE 14: DEPLOY A PRODUCCIÓN (main)
+
+
 
 ### 14.1 Crear PR desde `feature` → `main`
 
@@ -832,14 +854,14 @@ terraform destroy -var-file=terraform.dev.tfvars
 
 ```powershell
 # Crear rama
-git checkout -b feature/mi-cambio
+git checkout -b feature
 
 # Hacer commit
 git add .
-git commit -m "feat: descripción"
+git commit -m "descripción"
 
 # Push
-git push origin feature/mi-cambio
+git push origin feature
 
 # Pull request desde GitHub UI
 ```
@@ -847,5 +869,3 @@ git push origin feature/mi-cambio
 ---
 
 **Última actualización:** Diciembre 11, 2025
-
-**Preguntas frecuentes o problemas:** Abre un issue en el repositorio o contacta al mantenedor.
