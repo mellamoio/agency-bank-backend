@@ -1,0 +1,37 @@
+name: CI - Build & Push to ECR
+
+on:
+  push:
+    branches:
+      - '**'
+      - '!main'
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    permissions:
+      id-token: write
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure AWS Credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
+          aws-region: us-east-1
+
+      - name: Login to ECR
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Build image
+        run: docker build -t app:latest .
+
+      - name: Tag image
+        run: docker tag app:latest ${{ vars.ECR_REPO }}:latest
+
+      - name: Push image
+        run: docker push ${{ vars.ECR_REPO }}:latest

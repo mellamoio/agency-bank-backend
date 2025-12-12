@@ -1,12 +1,10 @@
 # ============================================
-# GitHub Actions OIDC Configuration
-# Crea automáticamente el provider OIDC y role IAM
-# para que GitHub Actions pueda asumir credenciales AWS
+# GitHub Actions OIDC Configuration CORREGIDO
+# IAM Roles seguros para CI/CD
 # ============================================
 
-# ===== Variables para GitHub =====
 variable "github_owner" {
-  description = "Owner del repositorio GitHub (usuario u organización)"
+  description = "Owner del repositorio GitHub"
   type        = string
   default     = "mellamoio"
 }
@@ -17,17 +15,14 @@ variable "github_repo" {
   default     = "agency-bank-backend"
 }
 
-# ===== PROVEEDOR OIDC =====
-# Permite que GitHub Actions obtenga tokens JWT para asumir roles
+# ======== OIDC Provider ========
 resource "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
 
-  # Certificado de GitHub Actions
   thumbprint_list = [
     "6938fd4d98bab03faadb97b34396831e3780aba1"
   ]
 
-  # Audience - quién puede usar estos tokens
   client_id_list = ["sts.amazonaws.com"]
 
   tags = {
@@ -35,12 +30,10 @@ resource "aws_iam_openid_connect_provider" "github" {
   }
 }
 
-# ===== ROLE IAM PARA GITHUB ACTIONS =====
-# Role que GitHub Actions puede asumir para obtener credenciales AWS
+# ======== Role para GitHub Actions ========
 resource "aws_iam_role" "github_actions" {
   name = "github-actions-role"
 
-  # Trust policy - permite a GitHub OIDC asumir este role
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -53,74 +46,86 @@ resource "aws_iam_role" "github_actions" {
         Condition = {
           StringLike = {
             "token.actions.githubusercontent.com:sub" = "repo:${var.github_owner}/${var.github_repo}:ref:refs/heads/*"
+          }
+          StringEquals = {
             "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
           }
         }
       }
     ]
   })
-
-  tags = {
-    Name        = "github-actions-role"
-    CreatedBy   = "Terraform"
-    Purpose     = "GitHub Actions OIDC"
-  }
 }
 
-# ===== PERMISOS PARA ECR (Pushear imágenes) =====
-resource "aws_iam_role_policy_attachment" "github_ecr" {
-  role       = aws_iam_role.github_actions.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryFullAccess"
-}
-
-# ===== PERMISOS PARA ECS (Desplegar servicios) =====
-resource "aws_iam_role_policy_attachment" "github_ecs" {
-  role       = aws_iam_role.github_actions.name
-  policy_arn = "arn:aws:iam::aws:policy/AmazonECS_FullAccess"
-}
-
-# ===== PERMISOS PARA CLOUDWATCH (Logs) =====
-resource "aws_iam_role_policy_attachment" "github_cloudwatch" {
-  role       = aws_iam_role.github_actions.name
-  policy_arn = "arn:aws:iam::aws:policy/CloudWatchLogsFullAccess"
-}
-
-# ===== PERMISOS PARA TERRAFORM (Crear infraestructura) =====
-# Política customizada con permisos amplios para Terraform
-resource "aws_iam_role_policy" "github_terraform" {
-  name = "github-terraform-permissions"
+# ======== PERMISOS NECESARIOS y SEGUROS ========
+resource "aws_iam_role_policy" "github_ci_cd" {
+  name = "github-ci-cd-permissions"
   role = aws_iam_role.github_actions.id
 
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
+
+      # ----- ECR (push & pull) -----
       {
-        Sid    = "TerraformInfrastructure"
         Effect = "Allow"
         Action = [
-          # EC2 - VPC, Subnets, Security Groups, NAT Gateways
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:CompleteLayerUpload",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:InitiateLayerUpload",
+          "ecr:PutImage",
+          "ecr:UploadLayerPart"
+        ]
+        Resource = "*"
+      },
+
+      # ----- ECS (actualizar servicios) -----
+      {
+        Effect = "Allow"
+        Action = [
+          "ecs:DescribeServices",
+          "ecs:UpdateService",
+          "ecs:DescribeTaskDefinition",
+          "ecs:RegisterTaskDefinition"
+        ]
+        Resource = "*"
+      },
+
+      # ----- IAM para ECS (obligatorio) -----
+      {
+        Effect = "Allow"
+        Action = [
+          "iam:PassRole"
+        ]
+        Resource = [
+          "${aws_iam_role.ecs_task_execution_role.arn}",
+          "${aws_iam_role.ecs_task_role.arn}"
+        ]
+      },
+
+      # ----- Logs (ver registros) -----
+      {
+        Effect = "Allow"
+        Action = [
+          "logs:CreateLogStream",
+          "logs:PutLogEvents",
+          "logs:DescribeLogStreams"
+        ]
+        Resource = "*"
+      },
+
+      # ----- Permisos para Terraform -----
+      {
+        Effect = "Allow"
+        Action = [
           "ec2:*",
-          
-          # RDS - Base de datos
-          "rds:*",
-          
-          # Elastic Load Balancing - ALB
           "elasticloadbalancing:*",
-          
-          # IAM - Roles y políticas
-          "iam:*",
-          
-          # Secrets Manager - Credenciales
+          "rds:*",
           "secretsmanager:*",
-          
-          # CloudWatch - Logs y métricas
           "cloudwatch:*",
           "logs:*",
-          
-          # CloudFormation - para algunos recursos
           "cloudformation:*",
-          
-          # Tagging
           "tag:*"
         ]
         Resource = "*"
@@ -129,24 +134,11 @@ resource "aws_iam_role_policy" "github_terraform" {
   })
 }
 
-# ===== OUTPUTS =====
-output "github_oidc_provider_arn" {
-  description = "ARN del proveedor OIDC de GitHub"
-  value       = aws_iam_openid_connect_provider.github.arn
-}
-
+# ======== OUTPUTS ========
 output "github_actions_role_arn" {
-  description = "ARN del role IAM para GitHub Actions - USA ESTE VALOR EN GITHUB SECRET"
-  value       = aws_iam_role.github_actions.arn
-  sensitive   = false
+  value = aws_iam_role.github_actions.arn
 }
 
-output "github_actions_role_name" {
-  description = "Nombre del role IAM"
-  value       = aws_iam_role.github_actions.name
-}
-
-output "github_secret_value" {
-  description = "Valor para agregar al Secret AWS_ROLE_TO_ASSUME en GitHub"
-  value       = "Copia este ARN a GitHub: ${aws_iam_role.github_actions.arn}"
+output "github_oidc_provider_arn" {
+  value = aws_iam_openid_connect_provider.github.arn
 }

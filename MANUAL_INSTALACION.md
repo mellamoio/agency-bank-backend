@@ -492,7 +492,7 @@ docker login --username AWS --password $TOKEN $ECR_URL
 Debes ver: `Login Succeeded`
 
 # Navegar a la carpeta de la app
-cd ..\app
+cd ..
 
 ### Construir imagen
 docker build -t ${ECR_URL}:latest -f Dockerfile.prod .
